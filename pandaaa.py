@@ -1,7 +1,8 @@
 import panda3d as pd3d
+import numpy as np
 
 from direct.gui.OnscreenText import OnscreenText
-textObject = OnscreenText(text='bestgame ever', pos=(-0.5, 0.02), scale=0.07)
+textObject = OnscreenText(text='bestgame ever', pos=(-0.8, 0.6), scale=0.07)
 
 from math import pi, sin, cos
 
@@ -33,9 +34,54 @@ class MyApp(ShowBase):
         self.pandaActor.setHpr(90, 0, 0)
         self.pandaActor.reparentTo(self.render)
         # Loop its animation.
+        
+        self.pandababy = Actor("models/panda-model",
+                                {"walk": "models/panda-walk4"})
+        self.pandababy.setScale(0.0004, 0.0002, 0.0002)
+        self.pandababy.setPos(1.5, 5, -0.3)
+        self.pandababy.setHpr(-90, 0, 0)
+        self.pandababy.reparentTo(self.render)
+        global score
+        global Babyinterval
+        score = 0
+        Babyinterval = self.pandababy.posInterval(2,
+                                                   Point3(-2.5, 5, -0.3),
+                                                   startPos=Point3(2.5, 5, -0.3))
+        Babyinterval.loop()
 
         self.taskMgr.add(self.move_task, "move_task")
         self.taskMgr.add(self.jump_task, "jump_task")
+        self.taskMgr.add(self.collision_task, "collision_task")
+
+        self.taskMgr.doMethodLater(2, self.score_inc, 'score_inc')
+
+    def score_inc(self,task) :
+        global textObject
+        global score
+        textObject.destroy()
+        textObject = OnscreenText(text='Your score is : ' + str(score), pos=(-0.8, 0.6), scale=0.07)
+        score += 1
+        return Task.again
+    
+
+    def collision_task(self,task) :
+        global Babyinterval
+        global textObject
+        pos1 = self.pandaActor.getPos()
+        pos2 = self.pandababy.getPos()
+        
+        dist = np.linalg.norm(pos1-pos2)
+
+        if dist < 0.1 :
+            Babyinterval.finish()
+            self.taskMgr.remove('score_inc')
+            textObject.destroy()
+            textObject = OnscreenText(text='GAME OVER \n FINAL SCORE : ' + str(score), pos=(-0.8, 0.6), scale=0.07)
+            return Task.done
+
+        return Task.cont
+        
+        
 
     def jump_task(self,task) :
 
