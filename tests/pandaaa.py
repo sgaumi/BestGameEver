@@ -54,17 +54,9 @@ class MyApp(ShowBase):
                              transparency=False)
     
         self.bg.reparentTo(self.render)
-        """
-        # Load the environment model.
-        self.scene = self.loader.loadModel("modelo/best_model.egg")
-        # Reparent the model to render.
-        self.scene.reparentTo(self.render)
-        # Apply scale and position transforms on the model.
-        self.scene.setScale(0.25, 0.25, 0.25)
-        self.scene.setPos(-8, 42, 0)
-        """
+
         # Load and transform the panda actor.
-        self.pandaActor = loadObject("sprite_test_wait.png", scale=0.2, depth=5,
+        self.pandaActor = loadObject("sprite_test_wait.png", scale=0.3, depth=5,
                              transparency=True)
         #self.pandaActor.setScale(0.001, 0.0005, 0.0005)
         self.pandaActor.setPos(0, 5, -0.3)
@@ -79,6 +71,11 @@ class MyApp(ShowBase):
         self.pandababy.reparentTo(self.render)
         global score
         global Babyinterval
+        global on_kick
+        global texture
+        on_kick = False
+
+        texture = loader.loadTexture("modelo/" + 'sprite_test_wait.png')
         score = 0
         Babyinterval = self.pandababy.posInterval(2,
                                                    Point3(-2.5, 5, -0.3),
@@ -88,9 +85,42 @@ class MyApp(ShowBase):
         self.taskMgr.add(self.move_task, "move_task")
         self.taskMgr.add(self.jump_task, "jump_task")
         self.taskMgr.add(self.collision_task, "collision_task")
+        self.taskMgr.add(self.kick_task, "kick_task")
 
         self.taskMgr.doMethodLater(2, self.score_inc, 'score_inc')
 
+
+    def kick_task(self,task) :
+
+        global on_kick
+        
+        is_down = base.mouseWatcherNode.is_button_down
+        k_button = KeyboardButton.ascii_key('k')
+        j_button = KeyboardButton.ascii_key('j')
+        if is_down(k_button):
+            on_kick = True
+            tex = loader.loadTexture("modelo/" + 'sprite_test_kick_right.png')
+            self.pandaActor.setTexture(tex, 1)
+            self.taskMgr.doMethodLater(0.3, self.end_kick, 'end_kick')
+            return Task.done
+        
+        elif is_down(j_button):
+            on_kick = True
+            tex = loader.loadTexture("modelo/" + 'sprite_test_kick_left.png')
+            self.pandaActor.setTexture(tex, 1)
+            self.taskMgr.doMethodLater(0.3, self.end_kick, 'end_kick')
+            return Task.done
+        
+        return Task.cont
+
+    def end_kick(self,task) :
+        global texture
+        global on_kick
+        self.pandaActor.setTexture(texture, 1)
+        self.taskMgr.add(self.kick_task, "kick_task")
+        on_kick = False
+        return Task.done
+    
     def score_inc(self,task) :
         global textObject
         global score
@@ -121,16 +151,19 @@ class MyApp(ShowBase):
 
     def jump_task(self,task) :
 
+        global texture
+        global on_kick
         
         z = self.pandaActor.getZ()
-        if z <= -0.3 :
-            is_down = base.mouseWatcherNode.is_button_down
-            space_button = KeyboardButton.space()
-            if is_down(space_button):
-                tex = loader.loadTexture("modelo/" + 'sprite_test_jump.png')
-                self.pandaActor.setTexture(tex, 1)
-                self.taskMgr.add(self.up,"up")
-                print('lee-sin = noob')
+        is_down = base.mouseWatcherNode.is_button_down
+        space_button = KeyboardButton.space()
+        if is_down(space_button):
+            texture = loader.loadTexture("modelo/" + 'sprite_test_jump.png')
+            if on_kick != True :
+                self.pandaActor.setTexture(texture, 1)
+            self.taskMgr.add(self.up,"up")
+            print('lee-sin = noob')
+            return Task.done
         """x_delta = speed * globalClock.get_dt()
         position = self.pandaActor.getPos()"""
     
@@ -149,6 +182,10 @@ class MyApp(ShowBase):
             return Task.cont
 
     def down(self,task) :
+        
+        global texture
+        global on_kick
+        
         speed_jumpd = 1.5
         z_deltad = speed_jumpd * globalClock.get_dt()
         zd = self.pandaActor.getZ()
@@ -156,8 +193,10 @@ class MyApp(ShowBase):
 
         if zd + z_deltad <= -0.3 :
             self.pandaActor.setZ(-0.3)
-            tex = loader.loadTexture("modelo/" + 'sprite_test_wait.png')
-            self.pandaActor.setTexture(tex, 1)
+            texture = loader.loadTexture("modelo/" + 'sprite_test_wait.png')
+            if on_kick != True :
+                self.pandaActor.setTexture(texture, 1)
+            self.taskMgr.add(self.jump_task,"jump_task")
             return Task.done
         else :
             return Task.cont
