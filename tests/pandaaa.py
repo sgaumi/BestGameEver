@@ -11,6 +11,34 @@ from direct.task import Task
 from direct.actor.Actor import Actor
 from direct.interval.IntervalGlobal import Sequence
 from panda3d.core import Point3, KeyboardButton
+from panda3d.core import TextNode, TransparencyAttrib
+
+def loadObject(tex=None, pos=Point3(0, 0), depth=5, scale=1,
+               transparency=True):
+    # Every object uses the plane model and is parented to the camera
+    # so that it faces the screen.
+    obj = loader.loadModel("modelo/plane")
+    #obj.reparentTo(camera)
+
+    # Set the initial position and scale.
+    obj.setPos(0, depth, -0.3)
+    obj.setScale(scale)
+
+    # This tells Panda not to worry about the order that things are drawn in
+    # (ie. disable Z-testing).  This prevents an effect known as Z-fighting.
+    """obj.setBin("unsorted", 0)
+    obj.setDepthTest(False)
+    """
+    if transparency:
+        # Enable transparency blending.
+        obj.setTransparency(TransparencyAttrib.MAlpha)
+
+    if tex:
+        # Load and set the requested texture.
+        tex = loader.loadTexture("modelo/" + tex)
+        obj.setTexture(tex, 1)
+
+    return obj
 
 
 class MyApp(ShowBase):
@@ -18,20 +46,28 @@ class MyApp(ShowBase):
 
     def __init__(self):
         ShowBase.__init__(self)
+
+        self.disableMouse()
+        
+        self.setBackgroundColor((0, 0, 0, 1))
+        self.bg = loadObject("Capture.PNG", scale=20, depth=10,
+                             transparency=False)
+    
+        self.bg.reparentTo(self.render)
+        """
         # Load the environment model.
-        self.scene = self.loader.loadModel("models/environment")
+        self.scene = self.loader.loadModel("modelo/best_model.egg")
         # Reparent the model to render.
         self.scene.reparentTo(self.render)
         # Apply scale and position transforms on the model.
         self.scene.setScale(0.25, 0.25, 0.25)
         self.scene.setPos(-8, 42, 0)
-        
+        """
         # Load and transform the panda actor.
-        self.pandaActor = Actor("models/panda-model",
-                                {"walk": "models/panda-walk4"})
-        self.pandaActor.setScale(0.001, 0.0005, 0.0005)
+        self.pandaActor = loadObject("sprite_test_wait.png", scale=0.2, depth=5,
+                             transparency=True)
+        #self.pandaActor.setScale(0.001, 0.0005, 0.0005)
         self.pandaActor.setPos(0, 5, -0.3)
-        self.pandaActor.setHpr(90, 0, 0)
         self.pandaActor.reparentTo(self.render)
         # Loop its animation.
         
@@ -72,7 +108,7 @@ class MyApp(ShowBase):
         
         dist = np.linalg.norm(pos1-pos2)
 
-        if dist < 0.1 :
+        if dist < 0.15 :
             Babyinterval.finish()
             self.taskMgr.remove('score_inc')
             textObject.destroy()
@@ -91,6 +127,8 @@ class MyApp(ShowBase):
             is_down = base.mouseWatcherNode.is_button_down
             space_button = KeyboardButton.space()
             if is_down(space_button):
+                tex = loader.loadTexture("modelo/" + 'sprite_test_jump.png')
+                self.pandaActor.setTexture(tex, 1)
                 self.taskMgr.add(self.up,"up")
                 print('lee-sin = noob')
         """x_delta = speed * globalClock.get_dt()
@@ -118,6 +156,8 @@ class MyApp(ShowBase):
 
         if zd + z_deltad <= -0.3 :
             self.pandaActor.setZ(-0.3)
+            tex = loader.loadTexture("modelo/" + 'sprite_test_wait.png')
+            self.pandaActor.setTexture(tex, 1)
             return Task.done
         else :
             return Task.cont
@@ -139,9 +179,9 @@ class MyApp(ShowBase):
             speed -= left_speed
 
         if speed > 0 :
-            self.pandaActor.setHpr(90, 0, 0)
+            self.pandaActor.setHpr(0, 0, 0)
         elif speed < 0 :
-            self.pandaActor.setHpr(-90, 0, 0)
+            self.pandaActor.setHpr(0, 0, 0)
         # Move the player
         x_delta = speed * globalClock.get_dt()
         position = self.pandaActor.getPos()
