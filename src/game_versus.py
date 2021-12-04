@@ -17,6 +17,8 @@ class game_versus(ShowBase):
 
         self.player1 = player("sprite_test_wait_blue.png",scale=0.3,position=(-2,-1))
         self.player1.getObj().reparentTo(self.render)
+        self.taskMgr.add(self.player1.move_task, "move_task", extraArgs=[None, 'q', 'd'])
 
         self.player2 = player("sprite_test_wait_red.png",scale=0.3,position=(2,-1))
         self.player2.getObj().reparentTo(self.render)
+        self.taskMgr.add(self.player2.move_task, "move_task", extraArgs=[None, 'j', 'l'])

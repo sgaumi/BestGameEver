@@ -1,6 +1,7 @@
 #player.py
 
 from panda3d.core import Point3, KeyboardButton, TextNode, TransparencyAttrib
+from direct.task import Task
 
 class player():
 
@@ -41,3 +42,30 @@ class player():
 
     def getObj(self):
         return self.player
+
+    def move_task(self, task, left_key, right_key):
+        speed = 0
+        right_speed = 1 # units per second
+        left_speed = 1
+        right_button = KeyboardButton.ascii_key(right_key)
+        left_button = KeyboardButton.ascii_key(left_key)
+        # Check if the player is holding W or S
+        
+        is_down = base.mouseWatcherNode.is_button_down
+
+        if is_down(right_button):
+            speed += right_speed
+
+        if is_down(left_button):
+            speed -= left_speed
+
+        if speed > 0 :
+            self.player.setHpr(0, 0, 0)
+        elif speed < 0 :
+            self.player.setHpr(0, 0, 0)
+        # Move the player
+        x_delta = speed * globalClock.get_dt()
+        position = self.player.getPos()
+
+        self.player.setPos(position + Point3(x_delta,0,0))
+        return Task.cont
