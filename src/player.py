@@ -5,12 +5,17 @@ from direct.task import Task
 
 class player():
 
-    def __init__(self, tex_file, position=(0, 0),
-    depth=8,scale=0.2,transparency=True):
+    def __init__(self, position=(0, 0),
+    depth=8,scale=0.2,transparency=True,tskMngr=None,
+    tex_wait='sprite_test_wait.png',
+    tex_jump='sprite_test_jump.png'):
 
-        self.player = self.loadObject(tex=tex_file,pos=position,
+        self.player = self.loadObject(tex=tex_wait,pos=position,
             depth=depth,scale=scale,transparency=transparency)
-        #self.set.reparentTo(self.render)
+        self.taskMgr = tskMngr #on donne acces au task manager de game_versus
+        self.tex_jump = tex_jump
+        self.tex_wait = tex_wait
+
 
 
     def loadObject(self, tex=None, pos=(0, 0), depth=5, scale=1,
@@ -69,3 +74,51 @@ class player():
 
         self.player.setPos(position + Point3(x_delta,0,0))
         return Task.cont
+
+    ###jump
+    def jump_task(self,task) :
+        on_kick=False #enlever plus tard
+        
+        z = self.player.getZ()
+        is_down = base.mouseWatcherNode.is_button_down
+        space_button = KeyboardButton.space()
+        if is_down(space_button):
+            texture = loader.loadTexture("../data/" + self.tex_jump)
+            if on_kick != True :
+                self.player.setTexture(texture, 1)
+            self.taskMgr.add(self.up,"up")
+            return Task.done
+    
+        return Task.cont
+
+    def up(self,task) :
+        speed_jumpu = 2.5
+        z_delta = speed_jumpu * globalClock.get_dt()
+        z = self.player.getZ()
+        self.player.setZ(z + z_delta)
+
+        if z + z_delta > 0 :
+            self.taskMgr.add(self.down,"down")
+            return Task.done
+        else :
+            return Task.cont
+
+    def down(self,task) :
+        
+        on_kick=False
+        
+        speed_jumpd = 2.5
+        z_deltad = speed_jumpd * globalClock.get_dt()
+        zd = self.player.getZ()
+        self.player.setZ(zd - z_deltad)
+
+        if zd + z_deltad <= -1 :
+            self.player.setZ(-1)
+            texture = loader.loadTexture("../data/" + self.tex_wait)
+            if on_kick != True :
+                self.player.setTexture(texture, 1)
+            self.taskMgr.add(self.jump_task,"jump_task")
+            return Task.done
+        else :
+            return Task.cont
+    ###jump-end
