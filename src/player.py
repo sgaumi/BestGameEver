@@ -8,13 +8,19 @@ class player():
     def __init__(self, position=(0, 0),
     depth=8,scale=0.2,transparency=True,tskMngr=None,
     tex_wait='sprite_test_wait.png',
-    tex_jump='sprite_test_jump.png'):
+    tex_jump='sprite_test_jump.png',
+    tex_kick_left = 'sprite_test_kick_left.png',
+    tex_kick_right = 'sprite_test_kick_right.png'):
 
         self.player = self.loadObject(tex=tex_wait,pos=position,
             depth=depth,scale=scale,transparency=transparency)
         self.taskMgr = tskMngr #on donne acces au task manager de game_versus
         self.tex_jump = tex_jump
         self.tex_wait = tex_wait
+        self.tex_kick_left  = tex_kick_left
+        self.tex_kick_right  = tex_kick_right
+        self.on_kick = False
+        self.global_texture = loader.loadTexture("../data/" + self.tex_wait)
 
 
 
@@ -76,36 +82,34 @@ class player():
         return Task.cont
 
     ###jump
-    def jump_task(self,task) :
-        on_kick=False #enlever plus tard
+    def jump_task(self,task,key) :
         
         z = self.player.getZ()
         is_down = base.mouseWatcherNode.is_button_down
-        space_button = KeyboardButton.space()
+        space_button = KeyboardButton.ascii_key(key)
         if is_down(space_button):
-            texture = loader.loadTexture("../data/" + self.tex_jump)
-            if on_kick != True :
-                self.player.setTexture(texture, 1)
-            self.taskMgr.add(self.up,"up")
+            self.global_texture = loader.loadTexture("../data/" + self.tex_jump)
+            if self.on_kick != True :
+                self.player.setTexture(self.global_texture, 1)
+            self.taskMgr.add(self.up,"up", extraArgs=[None, key])
             return Task.done
     
         return Task.cont
 
-    def up(self,task) :
+    def up(self,task,key) :
         speed_jumpu = 2.5
         z_delta = speed_jumpu * globalClock.get_dt()
         z = self.player.getZ()
         self.player.setZ(z + z_delta)
 
         if z + z_delta > 0 :
-            self.taskMgr.add(self.down,"down")
+            self.taskMgr.add(self.down,"down", extraArgs=[None, key])
             return Task.done
         else :
             return Task.cont
-
-    def down(self,task) :
+    
+    def down(self,task,key) :
         
-        on_kick=False
         
         speed_jumpd = 2.5
         z_deltad = speed_jumpd * globalClock.get_dt()
@@ -114,11 +118,42 @@ class player():
 
         if zd + z_deltad <= -1 :
             self.player.setZ(-1)
-            texture = loader.loadTexture("../data/" + self.tex_wait)
-            if on_kick != True :
-                self.player.setTexture(texture, 1)
-            self.taskMgr.add(self.jump_task,"jump_task")
+            self.global_texture = loader.loadTexture("../data/" + self.tex_wait)
+            if self.on_kick != True :
+                self.player.setTexture(self.global_texture, 1)
+            self.taskMgr.add(self.jump_task,"jump_task", extraArgs=[None, key])
             return Task.done
         else :
             return Task.cont
     ###jump-end
+
+    ### kick
+    def kick_task(self,task,left_key,right_key) :
+     
+        is_down = base.mouseWatcherNode.is_button_down
+        r_button = KeyboardButton.ascii_key(right_key)
+        l_button = KeyboardButton.ascii_key(left_key)
+        if is_down(r_button):
+            self.on_kick = True
+            texture_kick = loader.loadTexture("../data/" + self.tex_kick_right)
+            self.player.setTexture(texture_kick, 1)
+            self.taskMgr.doMethodLater(0.3, self.end_kick, 'end_kick', extraArgs=[None, self.on_kick,left_key,right_key])
+            return Task.done
+        
+        elif is_down(l_button):
+            self.on_kick = True
+            texture = loader.loadTexture("../data/" + self.tex_kick_left)
+            self.player.setTexture(texture, 1)
+            self.taskMgr.doMethodLater(0.3, self.end_kick, 'end_kick', extraArgs=[None, self.on_kick,left_key,right_key])
+            return Task.done
+        
+        return Task.cont
+
+    def end_kick(self,task,on_kick,left_key,right_key) :
+        
+        self.player.setTexture(self.global_texture, 1)
+        self.taskMgr.add(self.kick_task, "kick_task", extraArgs=[None, left_key,right_key])
+        self.on_kick = False
+        return Task.done
+
+    ###kick-end
